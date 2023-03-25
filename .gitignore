@@ -130,3 +130,6 @@ dmypy.json
 
 # Data folder
 data/
+
+# Ignore visual studio code files
+.vscode/
