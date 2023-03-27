@@ -25,7 +25,8 @@ y = cs_func.calc_y(A, x)
 print(np.sum(A[:, 0] ** 2))
 # print(y)
 
-x_hat = models.biht(A, y, 400, max_iter=3000, mode="l2", verbose=True)
+# TODO: fix l2-mode, it is currently not working
+x_hat = models.biht(A, y, 400, max_iter=3000, mode="l1", verbose=True)
 
 x_hat = np.reshape(x_hat, (28, 28))
 
