@@ -16,5 +16,3 @@ def create_A(m, n, seed=None):
 
 def calc_y(A, x):
     return np.sign(A @ x)
-
-    
