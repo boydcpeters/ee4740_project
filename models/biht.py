@@ -104,7 +104,7 @@ def biht(
     # Calculate the gradient step size
     lam = 1 / (np.sqrt(m))
 
-    for i in tqdm(range(max_iter) if verbose else range(max_iter)):
+    for i in tqdm(range(max_iter)) if verbose else range(max_iter):
         # Calculate the one-sided gradient
         if mode == "l1":
             delta_fl = lam / 2 * A.T @ (y - np.sign(A @ x_hat))
