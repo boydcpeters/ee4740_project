@@ -5,7 +5,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-def load_mnist_data(path: str, normalize: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+def load_mnist_data(
+    path: str, normalize: bool = True, max_rows: int = None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Loads the MNIST dataset from a .csv file and returns the labels and images.
 
@@ -13,6 +15,11 @@ def load_mnist_data(path: str, normalize: bool = True) -> Tuple[np.ndarray, np.n
     ----------
     path : str
         Path to the .csv file containing the MNIST dataset.
+    normalize : bool
+        Indicates whether the data should be normalized.
+    max_rows : int
+        Maximum number of rows that should be read in, by default None. In this case
+        all the rows will be read.
 
     Returns
     -------
@@ -30,6 +37,9 @@ def load_mnist_data(path: str, normalize: bool = True) -> Tuple[np.ndarray, np.n
         # Count the number of lines, thus images, in the file
         n = sum(1 for row in reader)
 
+        if max_rows is not None:
+            n = min(n, max_rows)
+
         # Pre-initialize the arrays to store the values
         labels = np.zeros(n, dtype=np.uint8)
         images = np.zeros((n, 28, 28), dtype=np.float64)
@@ -38,18 +48,27 @@ def load_mnist_data(path: str, normalize: bool = True) -> Tuple[np.ndarray, np.n
         csvfile.seek(0)
         reader = csv.reader(csvfile)
 
-        for i, row in tqdm(enumerate(reader)):
-            temp = np.array(row, dtype=np.int8)
+        with tqdm(total=n) as pbar:
+            for i, row in enumerate(reader):
+                temp = np.array(row, dtype=np.uint8)
 
-            # Store the label of the image
-            labels[i] = temp[0]
+                # Store the label of the image
+                labels[i] = temp[0]
 
-            # Division by 255.0 is for the normalization to get
-            # the values in the range [0,1]
-            images[i] = np.reshape(temp[1:], (28, 28))
+                # Division by 255.0 is for the normalization to get
+                # the values in the range [0,1]
+                images[i] = np.reshape(temp[1:], (28, 28))
 
-            if normalize:
-                images[i] = images[i] / 255.0
+                if normalize:
+                    images[i] = images[i] / 255.0
+
+                # Update the progress bar
+                pbar.update(1)
+
+                if max_rows is not None:
+                    # Stop iterating if maximum number of rows is reached
+                    if i == max_rows - 1:
+                        break
 
     print("Finished data loading.")
 
