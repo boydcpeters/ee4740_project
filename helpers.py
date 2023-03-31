@@ -1,6 +1,23 @@
 import numpy as np
 
 
+def normalize(x: np.ndarray) -> np.ndarray:
+    """
+    Function normalizes the data in x to the range [0, 1].
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Data
+
+    Returns
+    -------
+    np.ndarray
+        Normalized data
+    """
+    return (x - np.amin(x)) / (np.amax(x) - np.amin(x))
+
+
 def compute_mse(x_im: np.ndarray, y_im: np.ndarray) -> float:
     """
     Function computes the Mean Squared Error (MSE) between two images.
@@ -57,7 +74,7 @@ def compute_psnr(x_im: np.ndarray, y_im: np.ndarray, max_pixel: float = 1.0) -> 
     Returns
     -------
     psnr : float
-        _description_
+        Peak Signal-to-Noise Ratio (PSNR) value
     """
     mse = compute_mse(x_im, y_im)
 
