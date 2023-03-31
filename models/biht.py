@@ -55,7 +55,7 @@ def biht(
     A: np.ndarray,
     y: np.ndarray,
     k: int,
-    max_iter: int = 3000,
+    max_iter: int = 300,
     mode: str = "l1",
     verbose: bool = False,
 ):
@@ -104,7 +104,7 @@ def biht(
     # Calculate the gradient step size
     lam = 1 / (np.sqrt(m))
 
-    for i in tqdm(range(max_iter)):
+    for i in tqdm(range(max_iter) if verbose else range(max_iter)):
         # Calculate the one-sided gradient
         if mode == "l1":
             delta_fl = lam / 2 * A.T @ (y - np.sign(A @ x_hat))
@@ -129,7 +129,10 @@ def biht(
 
         # Check for convergence and stop iterating if this is the case
         if np.linalg.norm(r) < 1e-6 and np.linalg.norm(delta_fl) < 0.001:
-            print(f"BIHT converged at iteration: {i}")
+            if verbose:
+                print(f"BIHT converged at iteration: {i}")
+
+            # Break the loop
             break
 
     return x_hat
