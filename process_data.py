@@ -73,3 +73,41 @@ def load_mnist_data(
     print("Finished data loading.")
 
     return labels, images
+
+
+def save_arr(path: str, x: np.ndarray):
+    """
+    Function saves the x array to an .npy file.
+
+    Parameters
+    ----------
+    path : str
+        Location to store x array.
+    x : np.ndarray
+        The array to store.
+    """
+
+    print(f"Saving the array to: {path}")
+    np.save(path, x)
+    print(f"Finished saving.")
+
+
+def load_arr(path: str) -> np.ndarray:
+    """
+    Function loads the x array from an .npy file.
+
+    Parameters
+    ----------
+    path : str
+        Location where x array is stored.
+
+    Returns
+    -------
+    np.ndarray
+        The loaded array.
+    """
+    print(f"Loading the array from: {path}")
+    x = np.load(path)
+    print(f"Finished loading.")
+
+    return x
