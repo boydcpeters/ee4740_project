@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 
@@ -86,3 +88,31 @@ def compute_psnr(x_im: np.ndarray, y_im: np.ndarray, max_pixel: float = 1.0) -> 
     psnr = 20 * np.log10(max_pixel / np.sqrt(mse))
 
     return psnr
+
+
+def retrieve_s_levels_images(images: np.ndarray) -> np.ndarray:
+    """
+    Function returns for every image the sparsity level (number of nonzero values).
+
+    Parameters
+    ----------
+    images : np.ndarray
+        Array with all the images. (num of images, h, w)
+
+    Returns
+    -------
+    np.ndarray
+        Array with the sparsity level of every image.
+    """
+    # Determine the minimum value that is not zero
+    min_value = np.amin(images[np.nonzero(images)])
+
+    # Flag all the values larger or equal to the minimum value
+    images_nonzeros = images >= min_value
+
+    # For every image store the number of nonzeros
+    s_images = np.zeros(images.shape[0])
+    for i in range(s_images.shape[0]):
+        s_images[i] = np.count_nonzero(images_nonzeros[i, :, :])
+
+    return s_images
