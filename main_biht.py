@@ -7,11 +7,12 @@ from helpers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-SPARSITY_DISTRIBUTION_FLAG = True
+SPARSITY_DISTRIBUTION_FLAG = False
+BIHT_RUN_FLAG = True
 
 
 labels, images = process_data.load_mnist_data(
-    "data\mnist_train.csv", normalize=True, max_rows=None
+    "data\mnist_test.csv", normalize=True, max_rows=None
 )
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -33,4 +34,25 @@ if SPARSITY_DISTRIBUTION_FLAG:
     ax1.set_xlabel("Sparsity level (s)")
     ax1.set_ylabel("Density of occurences")
 
+    plt.show()
+
+
+if BIHT_RUN_FLAG:
+    # Load an image
+    x_im = images[0]
+    x = x_im.flatten()
+
+    # Create the measurement matrix and calculate y
+    A = cs_func.create_A(800, 784)
+    y = cs_func.calc_y(A, x)
+
+    # Estimate x based on y and A with BIHT
+    # TODO: fix l2-mode, it is currently not working
+    x_hat = models.biht(A, y, 150, max_iter=300, mode="l1", verbose=True)
+    x_hat = np.reshape(x_hat, (28, 28))
+
+    print(f"MSE: {compute_mse(x_im, x_hat)}")
+    print(f"NMSE: {compute_nmse(x_im, x_hat)}")
+
+    fig2, axs2 = visualize.plot_images((x_im, x_hat))
     plt.show()
