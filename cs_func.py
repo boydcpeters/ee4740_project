@@ -6,7 +6,7 @@ def create_A(m, n, seed=None):
     rng = np.random.default_rng(seed=seed)
 
     # Draw the entries of A independently from the standard Gaussian distribution
-    A = rng.standard_normal(size=(m, n))
+    A = rng.normal(loc=0.0, scale=1.0, size=(m, n))
 
     # Normalize the columns to have a unit l2 norm
     A = A / np.linalg.norm(A, ord=2, axis=0)
