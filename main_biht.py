@@ -6,13 +6,15 @@ from helpers import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 SPARSITY_DISTRIBUTION_FLAG = False
-BIHT_RUN_FLAG = True
+BIHT_RUN_FLAG = False
+BIHT_CHECK_S_LEVELS_FLAG = True
 
 
 labels, images = process_data.load_mnist_data(
-    "data\mnist_test.csv", normalize=True, max_rows=None
+    "data\mnist_test.csv", normalize=True, max_rows=10
 )
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -55,4 +57,48 @@ if BIHT_RUN_FLAG:
     print(f"NMSE: {compute_nmse(x_im, x_hat)}")
 
     fig2, axs2 = visualize.plot_images((x_im, x_hat))
+    plt.show()
+
+
+if BIHT_CHECK_S_LEVELS_FLAG:
+    seed = 1
+
+    S_LEVEL_MAX = 784
+
+    # Number of measurements
+    m = 400
+
+    A = cs_func.create_A(m, 784, seed=seed)
+    m, n = A.shape
+
+    # Load an image
+    x_im = images[0]
+    x = x_im.flatten()
+
+    y = cs_func.calc_y(A, x)
+
+    mse = np.zeros(m)
+    nmse = np.zeros(m)
+
+    for i in tqdm(range(min(m, S_LEVEL_MAX))):
+        x_hat = models.biht(A, y, (i + 1), max_iter=100, mode="l1", verbose=False)
+        x_hat = np.reshape(x_hat, (28, 28))
+
+        mse[i] = compute_mse(x_im, x_hat)
+        nmse[i] = compute_nmse(x_im, x_hat)
+
+    s_levels = np.arange(1, m + 1)
+
+    fig3, axs3 = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+    axs3[0].plot(s_levels, mse)
+    axs3[1].plot(s_levels, nmse)
+
+    axs3[0].set_xlabel("Sparsity level (s)")
+    axs3[0].set_ylabel("MSE")
+
+    axs3[1].set_xlabel("Sparsity level (s)")
+    axs3[1].set_ylabel("NMSE")
+
+    fig3.tight_layout()
     plt.show()
