@@ -55,7 +55,7 @@ def biht(
     A: np.ndarray,
     y: np.ndarray,
     k: int,
-    max_iter: int = 10000,
+    max_iter: int = 3000,
     mode: str = "l1",
     verbose: bool = False,
 ):
@@ -90,6 +90,13 @@ def biht(
 
     m, n = A.shape
 
+    if k > m:
+        print(
+            f"Sparsity level ({k}) is higher than number of measurements ({m}) which is"
+            f" not allowed so sparsity level is set to {k}"
+        )
+        k = m
+
     # TODO: understand how this works for l2 norm, because the
     # gradient will always be zero right if x0 = np.zeros(n)??
     x_hat = np.zeros(n)
@@ -118,6 +125,101 @@ def biht(
         if verbose:
             print(
                 f"Iteration: {i}, ||y - A @ x_hat||_2: {np.linalg.norm(r)}"
+            )  # , "x_hat: ", x_hat)
+
+        # Check for convergence and stop iterating if this is the case
+        if np.linalg.norm(r) < 1e-6 and np.linalg.norm(delta_fl) < 0.001:
+            print(f"BIHT converged at iteration: {i}")
+            break
+
+    return x_hat
+
+
+def biht_adap(
+    A: np.ndarray,
+    y: np.ndarray,
+    k_max: int,
+    max_iter: int = 3000,
+    mode: str = "l1",
+    verbose: bool = False,
+):
+    """
+    Function performs an adapted version of the Binary Iterative Hard Thresholding
+    (BIHT) algorithm.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        Measurement matrix (m, n)
+    y : np.ndarray
+        Measurement results, sign(Ax) (m x 1)
+    k_max : int
+        Maximum sparsity level
+    max_iter : int, optional
+        Maximum number of iterations, by default 3000.
+    mode : str, optional
+        Set the mode for the gradient calculation, by default "l1".
+            - "l1": y is noiseless
+            - "l2": y has noise
+    verbose: bool, optional
+        Indicates whether the iteration number and the residual error at that iteration
+        should be printed out.
+
+    Returns
+    -------
+    Returns the best x with a maximum sparsity level k_max.
+    """
+
+    if mode not in {"l1", "l2"}:
+        raise ValueError("The mode should be either 'l1' or 'l2'.")
+
+    m, n = A.shape
+
+    if k_max > m:
+        print(
+            f"Maximum sparsity level ({k_max}) is higher than number of measurements"
+            f"({m}) which is not allowed so maximum sparsity level is set to {k_max}"
+        )
+        k_max = m
+
+    # TODO: understand how this works for l2 norm, because the
+    # gradient will always be zero right if x0 = np.zeros(n)??
+    x_hat = np.zeros(n)
+
+    # Calculate the gradient step size
+    lam = 1 / (np.sqrt(m))
+
+    for i in tqdm(range(k_max)):
+        # Set the k for this loop
+        k = min(i + 1, k_max)
+
+        for j in range(20):
+            # Calculate the one-sided gradient
+            if mode == "l1":
+                delta_fl = lam / 2 * A.T @ (y - np.sign(A @ x_hat))
+            elif mode == "l2":
+                Y = np.diag(y)
+                delta_fl = lam / 2 * (Y @ A).T @ negative_func((Y @ A @ x_hat))
+
+            if np.linalg.norm(delta_fl) < 1e-3:
+                break
+
+            # Compute and update
+            temp = x_hat + delta_fl
+            u_l = eta_k(temp, k)
+
+            # Perform a normalization
+            x_hat = u_l / np.linalg.norm(u_l, ord=2)
+
+            # Compute the residuals
+            r = y - np.sign(A @ x_hat)
+
+            # Compute the residuals
+            r = y - np.sign(A @ x_hat)
+
+        if verbose:
+            print(
+                f"Iteration: {i}, k: {k}, ||y - A @ x_hat||_2: {np.linalg.norm(r)}"
             )  # , "x_hat: ", x_hat)
 
         # Check for convergence and stop iterating if this is the case
