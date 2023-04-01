@@ -87,6 +87,7 @@ if BIHT_CHECK_S_LEVELS_FLAG:
             nmse[i] = compute_nmse(x_im, x_hat)
 
             x_hat_norm = normalize(x_hat)
+            # TODO: test the psnr calculation
             psnr[i] = compute_psnr(x_im, x_hat_norm)
 
         return s_levels, mse, nmse, psnr
@@ -109,7 +110,7 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     nmse = np.zeros(s_levels.shape, dtype=np.float64)
     psnr = np.zeros(s_levels.shape, dtype=np.float64)
 
-    for i in tqdm(range(100)):
+    for i in tqdm(range(20)):
         # Load an image
         x_im = images[i]
 
@@ -117,18 +118,40 @@ if BIHT_CHECK_S_LEVELS_FLAG:
 
     mse_mean = np.mean(mse, axis=0)
     mse_std = np.std(mse, axis=0)
+    mse_ci = 1.96 * mse_std / np.sqrt(mse.shape[0])
 
     nmse_mean = np.mean(nmse, axis=0)
     nmse_std = np.std(nmse, axis=0)
+    nmse_ci = 1.96 * nmse_std / np.sqrt(nmse.shape[0])
 
     psnr_mean = np.mean(psnr, axis=0)
     psnr_std = np.std(psnr, axis=0)
+    psnr_ci = 1.96 * psnr_std / np.sqrt(psnr.shape[0])
 
     fig3, axs3 = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
 
     axs3[0].plot(s_levels[0, :], mse_mean)
+    axs3[0].fill_between(
+        s_levels[0, :], (mse_mean - mse_ci), (mse_mean + mse_ci), color="b", alpha=0.1
+    )
+
     axs3[1].plot(s_levels[0, :], nmse_mean)
+    axs3[1].fill_between(
+        s_levels[0, :],
+        (nmse_mean - nmse_ci),
+        (nmse_mean + nmse_ci),
+        color="b",
+        alpha=0.1,
+    )
+
     axs3[2].plot(s_levels[0, :], psnr_mean)
+    axs3[2].fill_between(
+        s_levels[0, :],
+        (psnr_mean - psnr_ci),
+        (psnr_mean + psnr_ci),
+        color="b",
+        alpha=0.1,
+    )
 
     axs3[0].set_xlabel("Sparsity level (s)")
     axs3[0].set_ylabel("MSE")
