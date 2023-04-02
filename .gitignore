@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Data folder
-data/
+data/raw
 
 # Ignore visual studio code files
 .vscode/
