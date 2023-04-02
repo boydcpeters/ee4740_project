@@ -1,4 +1,5 @@
 from typing import Tuple
+from pathlib import Path
 
 import process_data
 import visualize
@@ -16,7 +17,7 @@ BIHT_CHECK_S_LEVELS_FLAG = True
 
 
 labels, images = process_data.load_mnist_data(
-    "data\mnist_test.csv", normalize=True, max_rows=200
+    "data\\raw\\mnist_test.csv", normalize=True, max_rows=200
 )
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -92,14 +93,14 @@ if BIHT_CHECK_S_LEVELS_FLAG:
 
         return s_levels, mse, nmse, psnr
 
+    SEED = 1
     S_LEVEL_MAX = 784
-
-    seed = 1
+    NUM_IMAGES = 300
 
     # Number of measurements
-    m = 400
+    m = 500
 
-    A = cs_func.create_A(m, 784, seed=seed)
+    A = cs_func.create_A(m, 784, seed=SEED)
     m, n = A.shape
 
     s_value = min(m, S_LEVEL_MAX)
@@ -110,57 +111,47 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     nmse = np.zeros(s_levels.shape, dtype=np.float64)
     psnr = np.zeros(s_levels.shape, dtype=np.float64)
 
-    for i in tqdm(range(20)):
-        # Load an image
-        x_im = images[i]
+    # Randomly select images from the dataset
+    idx_possible = np.arange(0, images.shape[0])
+    rng = np.random.default_rng(seed=SEED)
+    idx = rng.choice(idx_possible, size=(NUM_IMAGES), replace=False)
 
+    labels_metrics = np.zeros(idx.shape[0], dtype=np.uint8)
+    images_metrics = np.zeros((idx.shape[0], 28, 28), dtype=np.float64)
+
+    for i in tqdm(range(idx.shape[0])):
+        # Store the used images in an array
+        labels_metrics[i] = labels[idx[i]]
+        images_metrics[i] = images[idx[i]]
+
+        # Load an image
+        x_im = images[idx[i]]
+
+        # Calculate the performance metrics
         _, mse[i, :], nmse[i, :], psnr[i, :] = metrics_s_levels_biht(A, x_im)
 
-    mse_mean = np.mean(mse, axis=0)
-    mse_std = np.std(mse, axis=0)
-    mse_ci = 1.96 * mse_std / np.sqrt(mse.shape[0])
+    # Save the data
+    path_to_save = f"data\\biht\\A{m}_seed{SEED}\\"
 
-    nmse_mean = np.mean(nmse, axis=0)
-    nmse_std = np.std(nmse, axis=0)
-    nmse_ci = 1.96 * nmse_std / np.sqrt(nmse.shape[0])
+    # Create the directory if it does not exist yet
+    if not Path(path_to_save).exists():
+        Path(path_to_save).mkdir(parents=True)
 
-    psnr_mean = np.mean(psnr, axis=0)
-    psnr_std = np.std(psnr, axis=0)
-    psnr_ci = 1.96 * psnr_std / np.sqrt(psnr.shape[0])
+    # Save the A matrix
+    process_data.save_arr(path_to_save + f"A{m}.npy", A)
+    process_data.save_arr(path_to_save + f"labels.npy", labels_metrics)
+    process_data.save_arr(path_to_save + f"images.npy", images_metrics)
+    process_data.save_arr(path_to_save + f"s_levels.npy", s_levels)
+    process_data.save_arr(path_to_save + f"mse.npy", mse)
+    process_data.save_arr(path_to_save + f"nmse.npy", nmse)
+    process_data.save_arr(path_to_save + f"psnr.npy", psnr)
 
-    fig3, axs3 = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-
-    axs3[0].plot(s_levels[0, :], mse_mean)
-    axs3[0].fill_between(
-        s_levels[0, :], (mse_mean - mse_ci), (mse_mean + mse_ci), color="b", alpha=0.1
+    fig3, axs3 = visualize.plot_metrics(
+        s_levels,
+        (mse, nmse, psnr),
+        "Sparsity level (s)",
+        ("MSE", "NMSE", "PSNR"),
+        ci_flag=True,
     )
 
-    axs3[1].plot(s_levels[0, :], nmse_mean)
-    axs3[1].fill_between(
-        s_levels[0, :],
-        (nmse_mean - nmse_ci),
-        (nmse_mean + nmse_ci),
-        color="b",
-        alpha=0.1,
-    )
-
-    axs3[2].plot(s_levels[0, :], psnr_mean)
-    axs3[2].fill_between(
-        s_levels[0, :],
-        (psnr_mean - psnr_ci),
-        (psnr_mean + psnr_ci),
-        color="b",
-        alpha=0.1,
-    )
-
-    axs3[0].set_xlabel("Sparsity level (s)")
-    axs3[0].set_ylabel("MSE")
-
-    axs3[1].set_xlabel("Sparsity level (s)")
-    axs3[1].set_ylabel("NMSE")
-
-    axs3[2].set_xlabel("Sparsity level (s)")
-    axs3[2].set_ylabel("PSNR")
-
-    fig3.tight_layout()
     plt.show()
