@@ -17,7 +17,7 @@ BIHT_CHECK_S_LEVELS_FLAG = True
 
 
 labels, images = process_data.load_mnist_data(
-    "data\\raw\\mnist_test.csv", normalize=True, max_rows=200
+    "data\\raw\\mnist_train.csv", normalize=True, max_rows=None
 )
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -95,10 +95,10 @@ if BIHT_CHECK_S_LEVELS_FLAG:
 
     SEED = 1
     S_LEVEL_MAX = 784
-    NUM_IMAGES = 300
+    NUM_IMAGES = 60000
 
     # Number of measurements
-    m = 500
+    m = 25
 
     A = cs_func.create_A(m, 784, seed=SEED)
     m, n = A.shape
@@ -106,10 +106,12 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     s_value = min(m, S_LEVEL_MAX)
     s_levels = np.arange(1, s_value + 1)
 
-    s_levels = np.tile(s_levels, (s_value, 1))
-    mse = np.zeros(s_levels.shape, dtype=np.float64)
-    nmse = np.zeros(s_levels.shape, dtype=np.float64)
-    psnr = np.zeros(s_levels.shape, dtype=np.float64)
+    print(f"s_levels.shape: {s_levels.shape}")
+
+    s_levels = np.tile(s_levels, (NUM_IMAGES, 1))
+    mse = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
+    nmse = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
+    psnr = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
 
     # Randomly select images from the dataset
     idx_possible = np.arange(0, images.shape[0])
@@ -117,12 +119,12 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     idx = rng.choice(idx_possible, size=(NUM_IMAGES), replace=False)
 
     labels_metrics = np.zeros(idx.shape[0], dtype=np.uint8)
-    images_metrics = np.zeros((idx.shape[0], 28, 28), dtype=np.float64)
+    images_rows_metrics = np.zeros((idx.shape[0], 28, 28), dtype=np.float64)
 
     for i in tqdm(range(idx.shape[0])):
         # Store the used images in an array
         labels_metrics[i] = labels[idx[i]]
-        images_metrics[i] = images[idx[i]]
+        images_rows_metrics[i] = idx[i]
 
         # Load an image
         x_im = images[idx[i]]
@@ -140,7 +142,7 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     # Save the A matrix
     process_data.save_arr(path_to_save + f"A{m}.npy", A)
     process_data.save_arr(path_to_save + f"labels.npy", labels_metrics)
-    process_data.save_arr(path_to_save + f"images.npy", images_metrics)
+    process_data.save_arr(path_to_save + f"images_rows.npy", images_rows_metrics)
     process_data.save_arr(path_to_save + f"s_levels.npy", s_levels)
     process_data.save_arr(path_to_save + f"mse.npy", mse)
     process_data.save_arr(path_to_save + f"nmse.npy", nmse)
