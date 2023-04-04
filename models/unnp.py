@@ -232,10 +232,7 @@ def unnp_fit(
         # Gradient step for the least squares problem
         optimizer_outer.zero_grad()
 
-        # TODO: fix the gradient steps, because something is not working
-
         output = torch.matmul(A, x.reshape(x.numel(), 1))
-        # loss_outer = mse(output, y)
         loss_outer = custom_loss(
             A,
             x,
