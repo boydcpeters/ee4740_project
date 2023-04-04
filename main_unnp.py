@@ -19,7 +19,7 @@ labels, images = process_data.load_mnist_data(
 
 x_im = images[0]
 
-A = cs_func.create_A(1000, 784, seed=1)
+A = cs_func.create_A(500, 784, seed=1)
 y = cs_func.calc_y(A, x_im.flatten())
 # y = A @ x_im.flatten()
 
@@ -43,7 +43,7 @@ loss_t, net_input_saved, net, net_input, x_init = models.unnp_fit(
     y_var,
     num_iter_outer=1000,
     num_iter_inner=30,
-    lr_outer=0.3,
+    lr_outer=0.35,
     lr_inner=0.03,
     gpu_flag=GPU_FLAG,
 )
