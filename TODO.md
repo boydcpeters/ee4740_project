@@ -8,7 +8,8 @@ Do this multiple times (with the same images) {
 - do the mse, nmse, and psnr calculation for multiple images
 }
 
-seeds = [1, 2, 3, 4, 5]
+seeds = helpers.get_seeds()
+idx_row_images = helpers.gsset_idx_row_images()
 
 for seed in seeds:
     for m in [25, 100, 200, 500]:
