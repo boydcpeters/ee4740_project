@@ -1,6 +1,6 @@
 import cs_func
 import process_data
-
+import helpers
 
 m = 2
 n = 3
@@ -19,3 +19,7 @@ print()
 print()
 mse = process_data.load_arr("data\\biht\\A25_seed1\\mse.npy")
 print(mse)
+
+print("testing")
+print(helpers.get_seeds())
+print(helpers.get_idx_row_images())
