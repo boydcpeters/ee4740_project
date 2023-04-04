@@ -2,6 +2,8 @@ from typing import Tuple
 
 import numpy as np
 
+SEED = 1
+
 
 def normalize(x: np.ndarray) -> np.ndarray:
     """
@@ -116,3 +118,23 @@ def retrieve_s_levels_images(images: np.ndarray) -> np.ndarray:
         s_images[i] = np.count_nonzero(images_nonzeros[i, :, :])
 
     return s_images
+
+
+def get_seeds(seed: int = SEED):
+    # Create the random number generator
+    rng = np.random.default_rng(seed)
+
+    # Get the seeds
+    seeds = rng.integers(1, np.iinfo(np.int64).max, size=(5,))
+
+    return seeds
+
+
+def get_idx_row_images(seed: int = SEED):
+    # Create the random number generator
+    rng = np.random.default_rng(seed)
+
+    # Get the indices of the rows for the images
+    idx_row = rng.integers(0, 10000, size=(20,))
+
+    return idx_row
