@@ -91,3 +91,50 @@ def plot_images(
     fig.tight_layout()
 
     return fig, axs
+
+
+def plot_metrics(
+    x,
+    metrics,
+    xlabel: Union[str, Sequence[str]] = None,
+    ylabel: Union[str, Sequence[str]] = None,
+    ci_flag: bool = True,
+    ci_label: str = "95% confidence interval",
+    z: float = 1.96,
+):
+    fig, axs = plt.subplots(nrows=1, ncols=3)
+
+    for i, metric in enumerate(metrics):
+        metric_mean = np.mean(metric, axis=0)
+
+        axs[i].plot(x[0, :], metric_mean, label="Mean")
+
+        if ci_flag:
+            metric_std = np.std(metric, axis=0)
+            metric_ci = z * metric_std / np.sqrt(metric.shape[0])
+
+            axs[i].fill_between(
+                x[0, :],
+                (metric_mean - metric_ci),
+                (metric_mean + metric_ci),
+                color="b",
+                alpha=0.1,
+                label=ci_label,
+            )
+
+        if isinstance(xlabel, tuple) or isinstance(xlabel, list):
+            xlabel_temp = xlabel[i]
+        else:
+            xlabel_temp = xlabel
+
+        if isinstance(ylabel, tuple) or isinstance(ylabel, list):
+            ylabel_temp = ylabel[i]
+        else:
+            ylabel_temp = ylabel
+
+        axs[i].set_xlabel(xlabel_temp)
+        axs[i].set_ylabel(ylabel_temp)
+
+    fig.tight_layout()
+
+    return fig, axs
