@@ -9,7 +9,7 @@ Do this multiple times (with the same images) {
 }
 
 seeds = helpers.get_seeds()
-idx_row_images = helpers.gsset_idx_row_images()
+idx_row_images = helpers.get_idx_row_images()
 
 for seed in seeds:
     for m in [25, 100, 200, 500]:
