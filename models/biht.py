@@ -16,10 +16,8 @@ def negative_func(a):
     np.ndarray
         Array where all the positive values are set to zero.
     """
-    idx = a > 0
-    a[idx] = 0
 
-    return a
+    return (a - np.abs(a)) / 2.0
 
 
 def eta_k(a, k):
@@ -82,7 +80,8 @@ def biht(
 
     Returns
     -------
-    Returns the best x with sparsity level k.
+    np.ndarray
+        Returns the best x with sparsity level k.
     """
 
     if mode not in {"l1", "l2"}:
@@ -97,9 +96,9 @@ def biht(
         )
         k = m
 
-    # TODO: understand how this works for l2 norm, because the
-    # gradient will always be zero right if x0 = np.zeros(n)??
-    x_hat = np.zeros(n)
+    rng = np.random.default_rng()
+    x_hat = rng.uniform(low=0.0, high=1.0, size=(n,))
+    x_hat = x_hat / np.linalg.norm(x_hat)
 
     # Calculate the gradient step size
     lam = 1 / (np.sqrt(m))
