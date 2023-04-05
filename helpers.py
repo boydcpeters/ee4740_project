@@ -135,6 +135,6 @@ def get_idx_row_images(seed: int = SEED):
     rng = np.random.default_rng(seed)
 
     # Get the indices of the rows for the images
-    idx_row = rng.integers(0, 10000, size=(20,))
+    idx_row = rng.integers(0, 10000, size=(30,))
 
     return idx_row
