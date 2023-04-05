@@ -89,13 +89,6 @@ def biht(
 
     m, n = A.shape
 
-    if k > m:
-        print(
-            f"Sparsity level ({k}) is higher than number of measurements ({m}) which is"
-            f" not allowed so sparsity level is set to {k}"
-        )
-        k = m
-
     rng = np.random.default_rng()
     x_hat = rng.uniform(low=0.0, high=1.0, size=(n,))
     x_hat = x_hat / np.linalg.norm(x_hat)
