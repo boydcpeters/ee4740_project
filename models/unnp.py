@@ -299,8 +299,11 @@ def unnp_fit(
 
         # If flag set to True, store the best learning rate and best loss
         if find_best:
-            loss_updated = custom_loss(
-                A, Variable(x.data, requires_grad=True).flatten(), y
+            loss_updated = custom_loss_outer(
+                A,
+                Variable(x.data, requires_grad=True).flatten(),
+                y,
+                square=square_denom_loss,
             )
 
             # If the loss decreased, store the best net
