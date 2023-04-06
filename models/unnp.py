@@ -1,5 +1,6 @@
 from typing import Union, List, Tuple
 import os
+import copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -52,13 +53,30 @@ def custom_loss(A: torch.tensor, x: torch.tensor, y: torch.tensor) -> torch.tens
     torch.tensor
         _description_
     """
-    a = y.shape
-    aa = A.shape
-    aaa = x.shape
+    return -(
+        torch.matmul(y.reshape(1, y.numel()), torch.matmul(A, x.reshape(x.numel(), 1)))
+    ) / (
+        torch.norm(x.reshape(x.numel(), 1))
+    )  # ** 2)
 
-    return -(torch.matmul(y, torch.matmul(A, x.reshape(x.numel(), 1)))) / (
-        torch.norm(x) ** 2
-    )
+    # return -(torch.matmul(y, torch.matmul(A, x.reshape(x.numel(), 1)))) / (
+    #     torch.norm(x) ** 2
+    # )
+
+
+def custom_loss_inner(output, target):
+    return torch.norm((output - target))
+
+
+def exp_lr_scheduler(optimizer, epoch, init_lr=0.001, lr_decay_epoch=500, factor=0.5):
+    """Decay learning rate by a factor every lr_decay_epoch epochs."""
+    lr = init_lr * (factor ** (epoch // lr_decay_epoch))
+    if epoch % lr_decay_epoch == 0:
+        print("\nLR is set to {}".format(lr))
+        print("\n")
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = lr
+    return optimizer
 
 
 class DecoderNet(nn.Module):
@@ -92,7 +110,7 @@ class DecoderNet(nn.Module):
             # Add the ReLU/LeakReLU layer
             if leakyrelu_flag:
                 module_name = f"dleakyrelu{i}"
-                self.decoder.add_module(module_name, nn.LeakyReLU())
+                self.decoder.add_module(module_name, nn.LeakyReLU(negative_slope=0.05))
             else:
                 module_name = f"drelu{i}"
                 self.decoder.add_module(module_name, nn.ReLU())
@@ -142,10 +160,11 @@ def unnp_fit(
     lr_outer: float = 0.01,
     lr_inner: float = 0.02,
     num_iter_outer: int = 5000,
-    num_iter_inner: int = 100,
+    num_init_iter_inner: int = 100,
     out_channels: int = 1,
     weight_decay: float = 0.0,
     verbose: bool = True,
+    find_best: bool = True,
     gpu_flag: bool = False,
 ):
     print("Start the fit") if verbose else None
@@ -180,6 +199,8 @@ def unnp_fit(
 
         net_input.data *= 1.0 / 10.0
 
+    net_input.to(device)
+
     # We don't optimze over the input so no gradient required
     # net_input.requires_grad = False
 
@@ -204,7 +225,6 @@ def unnp_fit(
     x = Variable(torch.zeros([out_channels, int(w), int(w)]))
     x = x.to(device)
 
-    test = net_input.type(dtype)
     x.data = net(net_input.type(dtype))
 
     # The initial x tensor
@@ -220,19 +240,35 @@ def unnp_fit(
             xvar, lr=lr_outer, momentum=0.9, weight_decay=weight_decay
         )
     elif optim_outer == "adam":
+        # optimizer_outer = torch.optim.Adam(xvar, lr=lr_outer)
         optimizer_outer = torch.optim.Adam(xvar, lr=lr_outer, weight_decay=weight_decay)
 
-    # Create MSE loss criterion
-    mse = torch.nn.MSELoss()
+    scheduler_outer = torch.optim.lr_scheduler.ExponentialLR(
+        optimizer_outer, gamma=0.99
+    )
 
-    for i in tqdm(range(num_iter_outer)):
-        with torch.no_grad():
-            loss_pre = mse(torch.matmul(A, x.reshape(x.numel(), 1)), y)
+    num_iter_inner = num_init_iter_inner
 
-        # Gradient step for the least squares problem
+    if find_best:
+        best_net = copy.deepcopy(net)
+        best_loss = 1000000000000.0
+
+    for i in range(num_iter_outer):
+        # Reset the learning rate
+        for p in optimizer_inner.param_groups:
+            p["lr"] = lr_inner
+
+        scheduler_inner = torch.optim.lr_scheduler.ExponentialLR(
+            optimizer_inner, gamma=0.95
+        )
+
+        # Every 200 iterations update the iterations in the inner loop
+        if i % 200 == 0:
+            num_iter_inner = int(num_iter_inner * 1.2)
+
+        # Gradient step for the custom loss
         optimizer_outer.zero_grad()
 
-        output = torch.matmul(A, x.reshape(x.numel(), 1))
         loss_outer = custom_loss(
             A,
             x,
@@ -244,19 +280,41 @@ def unnp_fit(
         # Store the loss for an iteration
         loss_wrt_truth[i] = loss_outer.item()
 
-        print("Iteration %05d   Train loss %f " % (i, loss_wrt_truth[i]), "\r", end="")
+        # Print the iteration, train loss and the learning rate
+        print(
+            "Iteration %05d   Train loss %f   Learning rate: %f"
+            % (i, loss_wrt_truth[i], optimizer_outer.param_groups[0]["lr"]),
+            "\r",
+            end="",
+        )
 
+        # Inner loop, where the projection takes place
         for j in range(num_iter_inner):
             optimizer_inner.zero_grad()
             out = net(net_input.type(dtype))
-            loss_inner = mse(out, x)
+            loss_inner = custom_loss_inner(out, x)
             loss_inner.backward()
             optimizer_inner.step()
+            scheduler_inner.step()
 
         # Project on the learned network
         x.data = net(net_input.type(dtype))
 
-        # TODO: remove loss_updated or use it for best net?
-        loss_updated = custom_loss(A, Variable(x.data, requires_grad=True).flatten(), y)
+        # Adjust the learning rate with the scheduler
+        scheduler_outer.step()
+
+        # If flag set to True, store the best learning rate and best loss
+        if find_best:
+            loss_updated = custom_loss(
+                A, Variable(x.data, requires_grad=True).flatten(), y
+            )
+
+            # If the loss decreased, store the best net
+            if loss_updated.item() < 1.01 * best_loss:
+                best_loss = loss_updated.item()
+                best_net = copy.deepcopy(net)
+
+    if find_best:
+        net = best_net
 
     return loss_wrt_truth, net_input_store, net, net_input, x_init
