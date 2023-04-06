@@ -72,30 +72,6 @@ def custom_loss_outer(
     return -numerator / denominator
 
 
-def custom_loss(A: torch.tensor, x: torch.tensor, y: torch.tensor) -> torch.tensor:
-    """_summary_
-
-    Parameters
-    ----------
-    A : torch.tensor
-        _description_
-    x : torch.tensor
-        _description_
-    y : torch.tensor
-        _description_
-
-    Returns
-    -------
-    torch.tensor
-        _description_
-    """
-    return -(
-        torch.matmul(y.reshape(1, y.numel()), torch.matmul(A, x.reshape(x.numel(), 1)))
-    ) / (
-        torch.norm(x.reshape(x.numel(), 1))
-    )  # ** 2)
-
-
 def custom_loss_inner(output, target):
     return torch.norm((output - target))
 
