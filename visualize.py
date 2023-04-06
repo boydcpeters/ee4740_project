@@ -90,9 +90,12 @@ def plot_images(
     for i in range(n):
         im = axs[i_row, i_col].imshow(images[i], cmap=cmap)
 
-        divider = make_axes_locatable(axs[i_row, i_col])
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        fig.colorbar(im, cax=cax, orientation="vertical")
+        # Next part for the colorbar is inspired by:
+        # https://stackoverflow.com/questions/23876588/matplotlib-colorbar-in-each-subplot
+        if add_cbar:
+            divider = make_axes_locatable(axs[i_row, i_col])
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            fig.colorbar(im, cax=cax, orientation="vertical")
 
         if titles is not None:
             axs[i_row, i_col].set_title(titles[i])
