@@ -1,6 +1,7 @@
-from typing import Sequence, Union
+from typing import Sequence, Union, List, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def plot_image(image: np.ndarray, title: str = None, cmap: str = "viridis"):
@@ -36,8 +37,11 @@ def plot_image(image: np.ndarray, title: str = None, cmap: str = "viridis"):
 
 def plot_images(
     images: Union[np.ndarray, Sequence[np.ndarray]],
-    title: str = None,
+    titles: Union[List[str], Tuple[str]],
+    suptitle: str = None,
     cmap: str = "viridis",
+    figsize: Tuple[Union[int, float]] = None,
+    add_cbar: bool = True,
 ):
     """
     Function creates a figure and axes object with the images plotted.
@@ -66,10 +70,17 @@ def plot_images(
     elif isinstance(images, Sequence):
         n = len(images)
 
-    ncols = int(np.ceil(np.sqrt(n)))
-    nrows = int(np.ceil(n / ncols))
+    if n <= 3:
+        ncols = 3
+        nrows = 1
+    else:
+        ncols = int(np.ceil(np.sqrt(n)))
+        nrows = int(np.ceil(n / ncols))
 
-    fig, axs = plt.subplots(ncols=ncols, nrows=nrows)
+    if figsize is None:
+        figsize = [6.4, 4.8]  # just default values
+
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, squeeze=False, figsize=figsize)
 
     if len(axs.shape) != 2:
         axs = axs[np.newaxis, ...]
@@ -77,7 +88,14 @@ def plot_images(
     i_row = 0
     i_col = 0
     for i in range(n):
-        axs[i_row, i_col].imshow(images[i], cmap="viridis")
+        im = axs[i_row, i_col].imshow(images[i], cmap=cmap)
+
+        divider = make_axes_locatable(axs[i_row, i_col])
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        fig.colorbar(im, cax=cax, orientation="vertical")
+
+        if titles is not None:
+            axs[i_row, i_col].set_title(titles[i])
 
         i_col += 1
 
@@ -85,8 +103,8 @@ def plot_images(
             i_col = 0
             i_row += 1
 
-    if title is not None:
-        fig.suptitle(title)
+    if suptitle is not None:
+        fig.suptitle(suptitle)
 
     fig.tight_layout()
 
