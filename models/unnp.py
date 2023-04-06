@@ -36,6 +36,42 @@ else:
     device = "cuda"
 
 
+def custom_loss_outer(
+    A: torch.tensor,
+    x: torch.tensor,
+    y: torch.tensor,
+    square: bool = False,
+) -> torch.tensor:
+    """
+    Function computes the loss for the outer loop.
+
+    Parameters
+    ----------
+    A : torch.tensor
+        Measurement matrix (m x N)
+    x : torch.tensor
+        The original signal (1 x N or N x 1)
+    y : torch.tensor
+        The measured signal (m x 1 or 1 x m)
+    square : bool, optional
+        Flag indicates whether the denominator in the loss should be squared, by default False.
+
+    Returns
+    -------
+    torch.tensor
+        Loss value
+    """
+    numerator = torch.matmul(
+        y.reshape(1, y.numel()), torch.matmul(A, x.reshape(x.numel(), 1))
+    )
+    denominator = torch.norm(x.reshape(x.numel(), 1))
+
+    if square:
+        denominator = denominator**2
+
+    return -numerator / denominator
+
+
 def custom_loss(A: torch.tensor, x: torch.tensor, y: torch.tensor) -> torch.tensor:
     """_summary_
 
@@ -59,24 +95,9 @@ def custom_loss(A: torch.tensor, x: torch.tensor, y: torch.tensor) -> torch.tens
         torch.norm(x.reshape(x.numel(), 1))
     )  # ** 2)
 
-    # return -(torch.matmul(y, torch.matmul(A, x.reshape(x.numel(), 1)))) / (
-    #     torch.norm(x) ** 2
-    # )
-
 
 def custom_loss_inner(output, target):
     return torch.norm((output - target))
-
-
-def exp_lr_scheduler(optimizer, epoch, init_lr=0.001, lr_decay_epoch=500, factor=0.5):
-    """Decay learning rate by a factor every lr_decay_epoch epochs."""
-    lr = init_lr * (factor ** (epoch // lr_decay_epoch))
-    if epoch % lr_decay_epoch == 0:
-        print("\nLR is set to {}".format(lr))
-        print("\n")
-    for param_group in optimizer.param_groups:
-        param_group["lr"] = lr
-    return optimizer
 
 
 class DecoderNet(nn.Module):
@@ -163,6 +184,7 @@ def unnp_fit(
     num_init_iter_inner: int = 100,
     out_channels: int = 1,
     weight_decay: float = 0.0,
+    square_denom_loss: bool = False,
     verbose: bool = True,
     find_best: bool = True,
     gpu_flag: bool = False,
@@ -269,11 +291,7 @@ def unnp_fit(
         # Gradient step for the custom loss
         optimizer_outer.zero_grad()
 
-        loss_outer = custom_loss(
-            A,
-            x,
-            y,
-        )
+        loss_outer = custom_loss_outer(A, x, y, square=square_denom_loss)
         loss_outer.backward()
         optimizer_outer.step()
 
