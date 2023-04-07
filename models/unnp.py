@@ -165,7 +165,9 @@ def unnp_fit(
     find_best: bool = True,
     gpu_flag: bool = False,
 ):
-    print("Start the fit") if verbose else None
+    print(
+        "Starting the projected gradient descent fitting procedure..."
+    ) if verbose else None
 
     dtype, device = get_dtype_device(gpu_flag)
 
@@ -210,19 +212,16 @@ def unnp_fit(
     loss_wrt_truth = np.zeros(num_iter_outer)
 
     if optim_inner == "sgd":
-        print("Optimize decoder with SGD")
+        print("Optimize decoder with SGD") if verbose else None
         optimizer_inner = torch.optim.SGD(
             p, lr=lr_inner, momentum=0.9, weight_decay=weight_decay
         )
     elif optim_inner == "adam":
-        print("Optimize decoder with Adam")
+        print("Optimize decoder with Adam") if verbose else None
         optimizer_inner = torch.optim.Adam(p, lr=lr_inner, weight_decay=weight_decay)
-
-    print("Optimizing with projected gradient descent...")
 
     x = Variable(torch.zeros([out_channels, int(w), int(w)]))
     x = x.to(device)
-
     x.data = net(net_input.type(dtype))
 
     # The initial x tensor
@@ -234,10 +233,12 @@ def unnp_fit(
     xvar = [x]
 
     if optim_outer == "sgd":
+        print("Optimize x with SGD") if verbose else None
         optimizer_outer = torch.optim.SGD(
             xvar, lr=lr_outer, momentum=0.9, weight_decay=weight_decay
         )
     elif optim_outer == "adam":
+        print("Optimize x with Adam") if verbose else None
         # optimizer_outer = torch.optim.Adam(xvar, lr=lr_outer)
         optimizer_outer = torch.optim.Adam(xvar, lr=lr_outer, weight_decay=weight_decay)
 
@@ -280,7 +281,7 @@ def unnp_fit(
             % (i, loss_wrt_truth[i], optimizer_outer.param_groups[0]["lr"]),
             "\r",
             end="",
-        )
+        ) if verbose else None
 
         # Inner loop, where the projection takes place
         for j in range(num_iter_inner):
