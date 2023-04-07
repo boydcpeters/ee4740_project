@@ -16,7 +16,7 @@ BIHT_RUN_FLAG = False
 BIHT_CHECK_S_LEVELS_FLAG = False
 BIHT_TEST_NUM_M = False
 
-PLOT_RESULTS_TEST_NUM_M = True
+PLOT_RESULTS_BIHT_TEST_NUM_M = True
 
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -232,7 +232,7 @@ if BIHT_TEST_NUM_M:
     process_data.save_arr(path_to_data + "psnr.npy", psnr)
 
 
-if PLOT_RESULTS_TEST_NUM_M:
+if PLOT_RESULTS_BIHT_TEST_NUM_M:
     path_to_data = f"data\\biht\\metrics_num_m\\"
 
     if not Path(path_to_data).exists():
