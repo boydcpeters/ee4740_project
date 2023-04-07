@@ -18,17 +18,17 @@ dtype, device = models.get_dtype_device(GPU_FLAG)
 
 TEST_RUN_UNNP = False
 COMPARE_LOSS_DENOM_SQUARE = False
-UNNP_TEST_NUM_M = False
-UNNP_TEST_NUM_M_LEAKYRELU = False
+UNNP_TEST_NUM_M = True
+UNNP_TEST_NUM_M_LEAKYRELU = True
 
 # Process data
 PROCESS_DATA_UNNP_TEST_NUM_M = False
-PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = True
+PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = False
 
 # Plot results
 PLOT_RESULTS_UNNP_TEST_NUM_M = False
-PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU = True
-PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = True
+PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU = False
+PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = False
 
 if TEST_RUN_UNNP:
     labels, images = process_data.load_mnist_data(
@@ -405,12 +405,6 @@ if UNNP_TEST_NUM_M_LEAKYRELU:
     idx_row_images = helpers.get_idx_row_images()
     num_m = np.array([25, 100, 200, 500, 1000, 1500])
     NUM_RESTARTS = 3
-
-    # TEMP
-    seeds = seeds[:2]
-    idx_row_images = idx_row_images[:2]
-    num_m = num_m[:2]
-    NUM_RESTARTS = 2
 
     # Set the parameters for the decoder network
     num_channels = [25, 15, 10]
