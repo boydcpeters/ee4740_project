@@ -37,7 +37,7 @@ def plot_image(image: np.ndarray, title: str = None, cmap: str = "viridis"):
 
 def plot_images(
     images: Union[np.ndarray, Sequence[np.ndarray]],
-    titles: Union[List[str], Tuple[str]],
+    titles: Union[List[str], Tuple[str]] = None,
     suptitle: str = None,
     cmap: str = "viridis",
     figsize: Tuple[Union[int, float]] = None,
@@ -71,7 +71,7 @@ def plot_images(
         n = len(images)
 
     if n <= 3:
-        ncols = 3
+        ncols = n
         nrows = 1
     else:
         ncols = int(np.ceil(np.sqrt(n)))
