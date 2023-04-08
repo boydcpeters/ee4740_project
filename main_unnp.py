@@ -17,7 +17,7 @@ GPU_FLAG = False
 dtype, device = models.get_dtype_device(GPU_FLAG)
 
 TEST_RUN_UNNP = False
-COMPARE_LOSS_DENOM_SQUARE = True
+COMPARE_LOSS_DENOM_SQUARE = False
 UNNP_TEST_NUM_M = False
 UNNP_TEST_NUM_M_LEAKYRELU = False
 
@@ -28,6 +28,7 @@ PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = False
 # Plot results
 PLOT_RESULTS_UNNP_TEST_NUM_M = False
 PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU = False
+PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU_OLNY_NMSE = True
 PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = False
 
 if TEST_RUN_UNNP:
@@ -713,76 +714,73 @@ if PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU:
 
     plt.show()
 
-# labels, images = process_data.load_mnist_data(
-#     "data\\raw\\mnist_train.csv", normalize=True, max_rows=10
-# )
+if PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU_OLNY_NMSE:
+    path_to_data_processed_relu = f"data\\unnp\\metrics_num_m\\processed\\"
+    path_to_data_processed_leakyrelu = (
+        f"data\\unnp\\metrics_num_m_leakyrelu\\processed\\"
+    )
 
-# x_im = images[1]
+    # Check if the paths exist
+    if not Path(path_to_data_processed_relu).exists():
+        raise FileNotFoundError(
+            "The data does not exist, first generate/process the data."
+        )
+    if not Path(path_to_data_processed_leakyrelu).exists():
+        raise FileNotFoundError(
+            "The data does not exist, first generate/process the data."
+        )
 
-# A = cs_func.create_A(200, 784, seed=1)
-# y = cs_func.calc_y(A, x_im.flatten())
-# # y = A @ x_im.flatten()
+    # Load all the different data arrays for ReLU results
+    num_m_relu = process_data.load_arr(path_to_data_processed_relu + "num_m.npy")
+    nmse_mean_relu = process_data.load_arr(
+        path_to_data_processed_relu + "nmse_mean.npy"
+    )
+    nmse_std_relu = process_data.load_arr(path_to_data_processed_relu + "nmse_std.npy")
+    # Load all the different data arrays for LeakyReLU results
+    num_m_leakyrelu = process_data.load_arr(
+        path_to_data_processed_leakyrelu + "num_m.npy"
+    )
+    nmse_mean_leakyrelu = process_data.load_arr(
+        path_to_data_processed_leakyrelu + "nmse_mean.npy"
+    )
+    nmse_std_leakyrelu = process_data.load_arr(
+        path_to_data_processed_leakyrelu + "nmse_std.npy"
+    )
 
-# # print(y)
+    # Create the figure
+    fig4, axs4 = plt.subplots(nrows=1, ncols=1, figsize=(5, 3.5))
 
-# num_channels = [25, 15, 10]
-# output_depth = 1  # number of output channels
+    axs4.errorbar(
+        num_m_relu,
+        nmse_mean_relu,
+        yerr=nmse_std_relu,
+        fmt="--o",
+        capsize=3,
+        label="ReLU",
+    )
+    axs4.errorbar(
+        num_m_leakyrelu,
+        nmse_mean_leakyrelu,
+        yerr=nmse_std_leakyrelu,
+        fmt="--o",
+        capsize=3,
+        label="LeakyReLU",
+    )
+    axs4.set_xlabel("Number of measurements (m)")
+    axs4.set_ylabel("NMSE")
+    axs4.grid(True)
 
-# A_var = torch.from_numpy(A).float().to(device)
-# y_var = torch.from_numpy(y).float().to(device)
+    fig4.tight_layout()
+    plt.legend(loc="best", title="UNNP type")
 
-# temp1 = y @ (A @ x_im.flatten())
-# temp2 = np.linalg.norm(x_im)  # ** 2
+    # plt.show()
 
-# perfect_loss = -temp1 / temp2
+    path_savefig = "data\\figures\\"
 
-# print("so the perfect loss is not very far away")
-# print(f"perfect loss: {perfect_loss}")
+    # Create the directory if it does not exist yet
+    if not Path(path_savefig).exists():
+        Path(path_savefig).mkdir(parents=True)
 
-
-# net = models.DecoderNet(
-#     num_output_channels=output_depth, num_channels_up=num_channels, leakyrelu_flag=False
-# ).type(dtype)
-
-# # Move the net to the correct device
-# net.to(device)
-
-# t0 = time.time()
-
-# loss_t, net_input_saved, net, net_input, x_init = models.unnp_fit(
-#     net,
-#     num_channels,
-#     A_var,
-#     y_var,
-#     num_iter_outer=600,
-#     num_init_iter_inner=10,
-#     optim_outer="sgd",
-#     optim_inner="adam",
-#     lr_outer=5,
-#     lr_inner=0.0001,
-#     lr_decay_epoch=500,
-#     find_best=False,
-#     gpu_flag=GPU_FLAG,
-# )
-# t1 = time.time()
-
-# print()
-# print(f"Total running time: {t1-t0:.2f} s, GPU: {GPU_FLAG}")
-
-
-# fig1, ax1 = plt.subplots(nrows=1, ncols=1)
-
-# ax1.plot(loss_t)
-# ax1.set_xlabel("optimizer iteration")
-# ax1.set_ylabel("loss")
-
-# # Check how the reconstructed image looks like
-# out_img_np = net(net_input_saved.type(dtype)).data.cpu().numpy()[0]
-# out_img_np = out_img_np[0, :, :]
-
-# print(f"nmse: {helpers.compute_nmse(x_im, out_img_np)}")
-
-# # Plot the images
-# fig2, ax2 = visualize.plot_images((x_im, out_img_np))
-
-# plt.show()
+    if path_savefig is not None:
+        fig4.savefig(path_savefig + "relu_vs_leakyrelu.pdf", dpi=200)
+        plt.close(fig4)
