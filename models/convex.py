@@ -16,7 +16,10 @@ def convex(
     constraints = [cvx.multiply(A @ vx, y) >= 1]
     # constraints = [cvx.sign(A @ vx) == y, cvx.norm1(A @ vx) == 200]
     prob = cvx.Problem(objective, constraints)
-    result = prob.solve(solver=cvx.ECOS, verbose=True)
-    x_hat = np.array(vx.value).squeeze()
+    result = prob.solve()
+    #result = prob.solve(solver=cvx.ECOS, verbose=True)
+    x_hat1 = np.array(vx.value).squeeze()
+    # Perform a normalization
+    x_hat = x_hat1 / np.linalg.norm(x_hat1, ord=2)
 
     return x_hat
