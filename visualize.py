@@ -1,4 +1,5 @@
 from typing import Sequence, Union, List, Tuple
+import string
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -97,6 +98,15 @@ def plot_images(
             cax = divider.append_axes("right", size="5%", pad=0.05)
             fig.colorbar(im, cax=cax, orientation="vertical")
 
+        axs[i_row, i_col].text(
+            -0.15,
+            1.1,
+            string.ascii_lowercase[i],
+            transform=axs[i_row, i_col].transAxes,
+            size=16,
+            weight="bold",
+        )
+
         if titles is not None:
             axs[i_row, i_col].set_title(titles[i])
 
@@ -109,7 +119,18 @@ def plot_images(
     if suptitle is not None:
         fig.suptitle(suptitle)
 
-    fig.tight_layout()
+    fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
+
+    # # Add annotation for subplots
+    # for i, ax in enumerate(axs):
+    #     ax.text(
+    #         -0.15,
+    #         1.05,
+    #         string.ascii_lowercase[i],
+    #         transform=ax.transAxes,
+    #         size=16,
+    #         weight="bold",
+    #     )
 
     return fig, axs
 
