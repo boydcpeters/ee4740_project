@@ -1,5 +1,6 @@
 from typing import Tuple
 from pathlib import Path
+import string
 
 import process_data
 import visualize
@@ -16,11 +17,13 @@ BIHT_RUN_FLAG = False
 
 BIHT_TEST_S_LEVELS = False
 PROCESS_DATA_BIHT_TEST_S_LEVELS = False
-PLOT_RESULTS_BIHT_TEST_S_LEVELS = True
+PLOT_RESULTS_BIHT_TEST_S_LEVELS = False
 
 BIHT_TEST_NUM_M = False
 PROCESS_DATA_BIHT_TEST_NUM_M = False
 PLOT_RESULTS_BIHT_TEST_NUM_M = False
+
+PLOT_SPARSITY_DISTRIBUTION_AND_NMSE_PSNR = True
 
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -455,3 +458,126 @@ if PLOT_RESULTS_BIHT_TEST_NUM_M:
     fig4.tight_layout()
 
     plt.show()
+
+
+if PLOT_SPARSITY_DISTRIBUTION_AND_NMSE_PSNR:
+    labels, images = process_data.load_mnist_data(
+        "data\\raw\\mnist_train.csv", normalize=True, max_rows=None
+    )
+
+    s_images = helpers.retrieve_s_levels_images(images)
+
+    # Create the figure
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 3))
+
+    unique, count = np.unique(s_images, return_counts=True)
+
+    # bins = np.arange(np.amin(s_images), np.amax(s_images) + 1) - 0.5
+
+    s_mean = np.mean(s_images)
+    s_std = np.std(s_images)
+    print(f"Mean sparsity level: {s_mean}, standard deviation: {s_std}")
+
+    count_norm = count / np.sum(count)
+
+    axs[0].bar(unique, count_norm, width=1)
+    axs[0].set_xlabel("Sparsity level (s)")
+    axs[0].set_ylabel("Density of occurences")
+
+    CI_FLAG = True
+    z = 1.96
+
+    path_to_data_processed = f"data\\biht\\sparsity_level\\processed\\"
+
+    if not Path(path_to_data_processed).exists():
+        raise FileNotFoundError(
+            "The data does not exist, first generate/process the data."
+        )
+
+    # Load all the different data arrays
+    num_m = process_data.load_arr(path_to_data_processed + "num_m.npy")
+    s_levels = process_data.load_arr(path_to_data_processed + "s_levels.npy")
+    nmse_mean = process_data.load_arr(path_to_data_processed + "nmse_mean.npy")
+    nmse_std = process_data.load_arr(path_to_data_processed + "nmse_std.npy")
+    psnr_mean = process_data.load_arr(path_to_data_processed + "psnr_mean.npy")
+    psnr_std = process_data.load_arr(path_to_data_processed + "psnr_std.npy")
+
+    for i in range(num_m.shape[0]):
+        p1 = axs[1].plot(
+            s_levels,
+            nmse_mean[i, :],
+            label=f"{num_m[i]:d}",
+        )
+        # p2 = axs[2].plot(
+        #     s_levels,
+        #     psnr_mean[i, :],
+        #     label=f"{num_m[i]:d}",
+        # )
+
+        if CI_FLAG:
+            alpha = 0.2
+
+            nmse_ci = z * nmse_std[i, :]
+            psnr_ci = z * psnr_std[i, :]
+
+            axs[1].fill_between(
+                s_levels,
+                (nmse_mean[i, :] - nmse_ci),
+                (nmse_mean[i, :] + nmse_ci),
+                color=p1[0].get_color(),
+                alpha=alpha,
+            )
+
+            # axs[2].fill_between(
+            #     s_levels,
+            #     (psnr_mean[i, :] - psnr_ci),
+            #     (psnr_mean[i, :] + psnr_ci),
+            #     color=p2[0].get_color(),
+            #     alpha=alpha,
+            # )
+
+    axs[1].set_xlabel("Sparsity level (s)")
+    axs[1].set_ylabel("NMSE")
+    axs[1].grid(True)
+
+    # axs[2].set_xlabel("Sparsity level (s)")
+    # axs[2].set_ylabel("PSNR")
+    # axs[2].grid(True)
+
+    # Remove duplicate labels, adapted from:
+    # https://stackoverflow.com/questions/13588920/stop-matplotlib-repeating-labels-in-legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    fig.legend(
+        by_label.values(),
+        by_label.keys(),
+        title="Measurements",
+        bbox_to_anchor=(0.85, 0.5),
+        loc="center left",
+        borderaxespad=0,
+    )
+    # fig.legend(title="Number of measurements (m)", loc=7)
+
+    # fig.tight_layout()
+    fig.tight_layout(rect=[0.0, 0.0, 0.85, 0.9])
+
+    # Add annotation for subplots
+    for i, ax in enumerate(axs):
+        ax.text(
+            -0.15,
+            1.05,
+            string.ascii_lowercase[i],
+            transform=ax.transAxes,
+            size=16,
+            weight="bold",
+        )
+
+    path_savefig = "data\\figures\\"
+
+    # Create the directory if it does not exist yet
+    if not Path(path_savefig).exists():
+        Path(path_savefig).mkdir(parents=True)
+
+    if path_savefig is not None:
+        fig.savefig(path_savefig + "sparsity_levels.pdf", dpi=200)
+        plt.close(fig)
