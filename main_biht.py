@@ -14,8 +14,8 @@ from tqdm import tqdm
 SPARSITY_DISTRIBUTION_FLAG = False
 BIHT_RUN_FLAG = False
 
-BIHT_TEST_S_LEVELS = True
-PROCESS_DATA_BIHT_TEST_S_LEVELS = True
+BIHT_TEST_S_LEVELS = False
+PROCESS_DATA_BIHT_TEST_S_LEVELS = False
 PLOT_RESULTS_BIHT_TEST_S_LEVELS = True
 
 BIHT_TEST_NUM_M = False
@@ -111,7 +111,7 @@ if BIHT_TEST_S_LEVELS:
 
     SEED = 1
     S_LEVEL_MAX = 784
-    NUM_IMAGES = 100
+    NUM_IMAGES = 30
 
     labels, images = process_data.load_mnist_data(
         "data\\raw\\mnist_train.csv", normalize=True, max_rows=None
@@ -150,7 +150,11 @@ if BIHT_TEST_S_LEVELS:
 
             # Calculate the performance metrics
             _, mse[i, :, j], nmse[i, :, j], psnr[i, :, j] = metrics_s_levels_biht(
-                A, x_im, s_min=1, s_max=S_LEVEL_MAX
+                A,
+                x_im,
+                s_min=1,
+                s_max=S_LEVEL_MAX,
+                verbose=False,
             )
 
     # Save the data
@@ -161,6 +165,7 @@ if BIHT_TEST_S_LEVELS:
         Path(path_to_save).mkdir(parents=True)
 
     # Save the resulting data
+    process_data.save_arr(path_to_save + f"num_m.npy", num_m)
     process_data.save_arr(path_to_save + f"s_levels.npy", s_levels)
     process_data.save_arr(path_to_save + f"mse.npy", mse)
     process_data.save_arr(path_to_save + f"nmse.npy", nmse)
@@ -178,6 +183,7 @@ if PROCESS_DATA_BIHT_TEST_S_LEVELS:
 
     # Load all the different data arrays
     num_m = process_data.load_arr(path_to_data_raw + "num_m.npy")
+    s_levels = process_data.load_arr(path_to_data_raw + "s_levels.npy")
     mse = process_data.load_arr(path_to_data_raw + "mse.npy")
     nmse = process_data.load_arr(path_to_data_raw + "nmse.npy")
     psnr = process_data.load_arr(path_to_data_raw + "psnr.npy")
@@ -194,6 +200,7 @@ if PROCESS_DATA_BIHT_TEST_S_LEVELS:
 
     # Save all the different data arrays
     process_data.save_arr(path_to_data_processed + "num_m.npy", num_m)
+    process_data.save_arr(path_to_data_processed + "s_levels.npy", s_levels)
     process_data.save_arr(path_to_data_processed + "mse_mean.npy", mse_mean)
     process_data.save_arr(path_to_data_processed + "mse_std.npy", mse_std)
     process_data.save_arr(path_to_data_processed + "nmse_mean.npy", nmse_mean)
@@ -203,6 +210,9 @@ if PROCESS_DATA_BIHT_TEST_S_LEVELS:
 
 
 if PLOT_RESULTS_BIHT_TEST_S_LEVELS:
+    CI_FLAG = True
+    z = 1.96
+
     path_to_data_processed = f"data\\biht\\sparsity_level\\processed\\"
 
     if not Path(path_to_data_processed).exists():
@@ -212,6 +222,7 @@ if PLOT_RESULTS_BIHT_TEST_S_LEVELS:
 
     # Load all the different data arrays
     num_m = process_data.load_arr(path_to_data_processed + "num_m.npy")
+    s_levels = process_data.load_arr(path_to_data_processed + "s_levels.npy")
     mse_mean = process_data.load_arr(path_to_data_processed + "mse_mean.npy")
     mse_std = process_data.load_arr(path_to_data_processed + "mse_std.npy")
     nmse_mean = process_data.load_arr(path_to_data_processed + "nmse_mean.npy")
@@ -223,47 +234,82 @@ if PLOT_RESULTS_BIHT_TEST_S_LEVELS:
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
 
     for i in range(num_m.shape[0]):
-        axs[0].errorbar(
-            num_m,
+        p0 = axs[0].plot(
+            s_levels,
             mse_mean[i, :],
-            yerr=mse_std[i, :],
-            fmt="--o",
-            capsize=3,
             label=f"{num_m[i]:d}",
         )
 
-        axs[1].errorbar(
-            num_m,
+        p1 = axs[1].plot(
+            s_levels,
             nmse_mean[i, :],
-            yerr=nmse_std[i, :],
-            fmt="--o",
-            capsize=3,
             label=f"{num_m[i]:d}",
         )
-        axs[2].errorbar(
-            num_m,
+        p2 = axs[2].plot(
+            s_levels,
             psnr_mean[i, :],
-            yerr=psnr_std[i, :],
-            fmt="--o",
-            capsize=3,
             label=f"{num_m[i]:d}",
         )
 
-    axs[0].set_xlabel("Number of measurements (m)")
+        if CI_FLAG:
+            alpha = 0.2
+
+            mse_ci = z * mse_std[i, :]
+            nmse_ci = z * nmse_std[i, :]
+            psnr_ci = z * psnr_std[i, :]
+
+            axs[0].fill_between(
+                s_levels,
+                (mse_mean[i, :] - mse_ci),
+                (mse_mean[i, :] + mse_ci),
+                color=p0[0].get_color(),
+                alpha=alpha,
+            )
+
+            axs[1].fill_between(
+                s_levels,
+                (nmse_mean[i, :] - nmse_ci),
+                (nmse_mean[i, :] + nmse_ci),
+                color=p1[0].get_color(),
+                alpha=alpha,
+            )
+
+            axs[2].fill_between(
+                s_levels,
+                (psnr_mean[i, :] - psnr_ci),
+                (psnr_mean[i, :] + psnr_ci),
+                color=p2[0].get_color(),
+                alpha=alpha,
+            )
+
+    axs[0].set_xlabel("Sparsity level (s)")
     axs[0].set_ylabel("MSE")
     axs[0].grid(True)
 
-    axs[1].set_xlabel("Number of measurements (m)")
+    axs[1].set_xlabel("Sparsity level (s)")
     axs[1].set_ylabel("NMSE")
     axs[1].grid(True)
 
-    axs[2].set_xlabel("Number of measurements (m)")
+    axs[2].set_xlabel("Sparsity level (s)")
     axs[2].set_ylabel("PSNR")
     axs[2].grid(True)
 
-    fig.legend()
+    # Remove duplicate labels, adapted from:
+    # https://stackoverflow.com/questions/13588920/stop-matplotlib-repeating-labels-in-legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    fig.legend(
+        by_label.values(),
+        by_label.keys(),
+        title="Measurements (m)",
+        bbox_to_anchor=(0.85, 0.5),
+        loc="center left",
+        borderaxespad=0,
+    )
+    # fig.legend(title="Number of measurements (m)", loc=7)
 
-    fig.tight_layout()
+    # fig.tight_layout()
+    fig.tight_layout(rect=[0, 0, 0.85, 1])
 
     plt.show()
 
