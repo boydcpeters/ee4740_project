@@ -13,10 +13,14 @@ from tqdm import tqdm
 
 SPARSITY_DISTRIBUTION_FLAG = False
 BIHT_RUN_FLAG = False
-BIHT_CHECK_S_LEVELS_FLAG = False
+
+BIHT_TEST_S_LEVELS = True
+PROCESS_DATA_BIHT_TEST_S_LEVELS = True
+PLOT_RESULTS_BIHT_TEST_S_LEVELS = True
+
 BIHT_TEST_NUM_M = False
-PROCESS_DATA_BIHT_TEST_NUM_M = True
-PLOT_RESULTS_BIHT_TEST_NUM_M = True
+PROCESS_DATA_BIHT_TEST_NUM_M = False
+PLOT_RESULTS_BIHT_TEST_NUM_M = False
 
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -69,59 +73,59 @@ if BIHT_RUN_FLAG:
     plt.show()
 
 
-if BIHT_CHECK_S_LEVELS_FLAG:
+if BIHT_TEST_S_LEVELS:
 
     def metrics_s_levels_biht(
-        A: np.ndarray, im: np.ndarray, s_level_max: int = 784, verbose: bool = True
+        A: np.ndarray,
+        im: np.ndarray,
+        s_min: int = 1,
+        s_max: int = 784,
+        verbose: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         m, n = A.shape
 
         x = im.flatten()
         y = cs_func.calc_y(A, x)
 
-        s_value = min(m, s_level_max)
-        s_levels = np.arange(1, s_value + 1)
+        s_levels = np.arange(s_min, s_max + 1)
 
         mse = np.zeros(s_levels.shape, dtype=np.float64)
         nmse = np.zeros(s_levels.shape, dtype=np.float64)
         psnr = np.zeros(s_levels.shape, dtype=np.float64)
 
-        for i in tqdm(range(s_value)) if verbose else range(s_value):
-            x_hat = models.biht(A, y, (i + 1), max_iter=100, mode="l1", verbose=False)
+        for i in (
+            tqdm(range(s_levels.shape[0])) if verbose else range(s_levels.shape[0])
+        ):
+            x_hat = models.biht(
+                A, y, s_levels[i], max_iter=60, mode="l1", verbose=False
+            )
             x_hat = np.reshape(x_hat, (28, 28))
 
             mse[i] = helpers.compute_mse(x_im, x_hat)
             nmse[i] = helpers.compute_nmse(x_im, x_hat)
 
             x_hat_norm = helpers.normalize(x_hat)
-            # TODO: test the psnr calculation
             psnr[i] = helpers.compute_psnr(x_im, x_hat_norm)
 
         return s_levels, mse, nmse, psnr
 
     SEED = 1
     S_LEVEL_MAX = 784
-    NUM_IMAGES = 60000
+    NUM_IMAGES = 100
 
     labels, images = process_data.load_mnist_data(
         "data\\raw\\mnist_train.csv", normalize=True, max_rows=None
     )
 
     # Number of measurements
-    m = 25
+    num_m = np.array([25, 100, 200, 500, 1000, 1500])
+    s_min = 1
+    s_max = S_LEVEL_MAX
+    s_levels = np.arange(1, s_max + 1)
 
-    A = cs_func.create_A(m, 784, seed=SEED)
-    m, n = A.shape
-
-    s_value = min(m, S_LEVEL_MAX)
-    s_levels = np.arange(1, s_value + 1)
-
-    print(f"s_levels.shape: {s_levels.shape}")
-
-    s_levels = np.tile(s_levels, (NUM_IMAGES, 1))
-    mse = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
-    nmse = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
-    psnr = np.zeros((NUM_IMAGES, s_levels.shape[1]), dtype=np.float64)
+    mse = np.zeros((num_m.shape[0], s_levels.shape[0], NUM_IMAGES), dtype=np.float64)
+    nmse = np.zeros((num_m.shape[0], s_levels.shape[0], NUM_IMAGES), dtype=np.float64)
+    psnr = np.zeros((num_m.shape[0], s_levels.shape[0], NUM_IMAGES), dtype=np.float64)
 
     # Randomly select images from the dataset
     idx_possible = np.arange(0, images.shape[0])
@@ -131,40 +135,135 @@ if BIHT_CHECK_S_LEVELS_FLAG:
     labels_metrics = np.zeros(idx.shape[0], dtype=np.uint8)
     images_rows_metrics = np.zeros((idx.shape[0], 28, 28), dtype=np.float64)
 
-    for i in tqdm(range(idx.shape[0])):
-        # Store the used images in an array
-        labels_metrics[i] = labels[idx[i]]
-        images_rows_metrics[i] = idx[i]
+    for i in tqdm(range(num_m.shape[0]), "Loop num_m"):
+        m = num_m[i]
 
-        # Load an image
-        x_im = images[idx[i]]
+        A = cs_func.create_A(m, 784, seed=SEED)
 
-        # Calculate the performance metrics
-        _, mse[i, :], nmse[i, :], psnr[i, :] = metrics_s_levels_biht(A, x_im)
+        for j in tqdm(range(idx.shape[0]), "Loop images"):
+            # Store the used images in an array
+            labels_metrics[j] = labels[idx[j]]
+            images_rows_metrics[j] = idx[j]
+
+            # Load an image
+            x_im = images[idx[j]]
+
+            # Calculate the performance metrics
+            _, mse[i, :, j], nmse[i, :, j], psnr[i, :, j] = metrics_s_levels_biht(
+                A, x_im, s_min=1, s_max=S_LEVEL_MAX
+            )
 
     # Save the data
-    path_to_save = f"data\\biht\\A{m}_seed{SEED}\\"
+    path_to_save = f"data\\biht\\sparsity_level\\raw\\"
 
     # Create the directory if it does not exist yet
     if not Path(path_to_save).exists():
         Path(path_to_save).mkdir(parents=True)
 
-    # Save the A matrix
-    process_data.save_arr(path_to_save + f"A{m}.npy", A)
-    process_data.save_arr(path_to_save + f"labels.npy", labels_metrics)
-    process_data.save_arr(path_to_save + f"images_rows.npy", images_rows_metrics)
+    # Save the resulting data
     process_data.save_arr(path_to_save + f"s_levels.npy", s_levels)
     process_data.save_arr(path_to_save + f"mse.npy", mse)
     process_data.save_arr(path_to_save + f"nmse.npy", nmse)
     process_data.save_arr(path_to_save + f"psnr.npy", psnr)
 
-    fig3, axs3 = visualize.plot_metrics(
-        s_levels,
-        (mse, nmse, psnr),
-        "Sparsity level (s)",
-        ("MSE", "NMSE", "PSNR"),
-        ci_flag=True,
-    )
+
+if PROCESS_DATA_BIHT_TEST_S_LEVELS:
+    path_to_data_raw = f"data\\biht\\sparsity_level\\raw\\"
+    if not Path(path_to_data_raw).exists():
+        raise FileNotFoundError("The data does not exist, first generate the data.")
+
+    path_to_data_processed = f"data\\biht\\sparsity_level\\processed\\"
+    if not Path(path_to_data_processed).exists():
+        Path(path_to_data_processed).mkdir(parents=True)
+
+    # Load all the different data arrays
+    num_m = process_data.load_arr(path_to_data_raw + "num_m.npy")
+    mse = process_data.load_arr(path_to_data_raw + "mse.npy")
+    nmse = process_data.load_arr(path_to_data_raw + "nmse.npy")
+    psnr = process_data.load_arr(path_to_data_raw + "psnr.npy")
+
+    # Take the mean over all the images for every m
+    mse_mean = np.mean(mse, axis=2)
+    mse_std = np.std(mse, axis=2)
+
+    nmse_mean = np.mean(nmse, axis=2)
+    nmse_std = np.std(nmse, axis=2)
+
+    psnr_mean = np.mean(psnr, axis=2)
+    psnr_std = np.std(psnr, axis=2)
+
+    # Save all the different data arrays
+    process_data.save_arr(path_to_data_processed + "num_m.npy", num_m)
+    process_data.save_arr(path_to_data_processed + "mse_mean.npy", mse_mean)
+    process_data.save_arr(path_to_data_processed + "mse_std.npy", mse_std)
+    process_data.save_arr(path_to_data_processed + "nmse_mean.npy", nmse_mean)
+    process_data.save_arr(path_to_data_processed + "nmse_std.npy", nmse_std)
+    process_data.save_arr(path_to_data_processed + "psnr_mean.npy", psnr_mean)
+    process_data.save_arr(path_to_data_processed + "psnr_std.npy", psnr_std)
+
+
+if PLOT_RESULTS_BIHT_TEST_S_LEVELS:
+    path_to_data_processed = f"data\\biht\\sparsity_level\\processed\\"
+
+    if not Path(path_to_data_processed).exists():
+        raise FileNotFoundError(
+            "The data does not exist, first generate/process the data."
+        )
+
+    # Load all the different data arrays
+    num_m = process_data.load_arr(path_to_data_processed + "num_m.npy")
+    mse_mean = process_data.load_arr(path_to_data_processed + "mse_mean.npy")
+    mse_std = process_data.load_arr(path_to_data_processed + "mse_std.npy")
+    nmse_mean = process_data.load_arr(path_to_data_processed + "nmse_mean.npy")
+    nmse_std = process_data.load_arr(path_to_data_processed + "nmse_std.npy")
+    psnr_mean = process_data.load_arr(path_to_data_processed + "psnr_mean.npy")
+    psnr_std = process_data.load_arr(path_to_data_processed + "psnr_std.npy")
+
+    # Create the figure
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+
+    for i in range(num_m.shape[0]):
+        axs[0].errorbar(
+            num_m,
+            mse_mean[i, :],
+            yerr=mse_std[i, :],
+            fmt="--o",
+            capsize=3,
+            label=f"{num_m[i]:d}",
+        )
+
+        axs[1].errorbar(
+            num_m,
+            nmse_mean[i, :],
+            yerr=nmse_std[i, :],
+            fmt="--o",
+            capsize=3,
+            label=f"{num_m[i]:d}",
+        )
+        axs[2].errorbar(
+            num_m,
+            psnr_mean[i, :],
+            yerr=psnr_std[i, :],
+            fmt="--o",
+            capsize=3,
+            label=f"{num_m[i]:d}",
+        )
+
+    axs[0].set_xlabel("Number of measurements (m)")
+    axs[0].set_ylabel("MSE")
+    axs[0].grid(True)
+
+    axs[1].set_xlabel("Number of measurements (m)")
+    axs[1].set_ylabel("NMSE")
+    axs[1].grid(True)
+
+    axs[2].set_xlabel("Number of measurements (m)")
+    axs[2].set_ylabel("PSNR")
+    axs[2].grid(True)
+
+    fig.legend()
+
+    fig.tight_layout()
 
     plt.show()
 
