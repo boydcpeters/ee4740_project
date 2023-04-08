@@ -15,7 +15,7 @@ SPARSITY_DISTRIBUTION_FLAG = False
 BIHT_RUN_FLAG = False
 BIHT_CHECK_S_LEVELS_FLAG = False
 BIHT_TEST_NUM_M = False
-
+PROCESS_DATA_BIHT_TEST_NUM_M = True
 PLOT_RESULTS_BIHT_TEST_NUM_M = True
 
 
@@ -219,7 +219,7 @@ if BIHT_TEST_NUM_M:
                 x_hat_norm = helpers.normalize(x_hat)
                 psnr[i, j, k] = helpers.compute_psnr(x_im, x_hat_norm)
 
-    path_to_data = f"data\\biht\\metrics_num_m\\"
+    path_to_data = f"data\\biht\\metrics_num_m\\raw\\"
 
     # If the path does not yet exists, create it
     if not Path(path_to_data).exists():
@@ -232,17 +232,20 @@ if BIHT_TEST_NUM_M:
     process_data.save_arr(path_to_data + "psnr.npy", psnr)
 
 
-if PLOT_RESULTS_BIHT_TEST_NUM_M:
-    path_to_data = f"data\\biht\\metrics_num_m\\"
-
-    if not Path(path_to_data).exists():
+if PROCESS_DATA_BIHT_TEST_NUM_M:
+    path_to_data_raw = f"data\\biht\\metrics_num_m\\raw\\"
+    if not Path(path_to_data_raw).exists():
         raise FileNotFoundError("The data does not exist, first generate the data.")
 
+    path_to_data_processed = f"data\\biht\\metrics_num_m\\processed\\"
+    if not Path(path_to_data_processed).exists():
+        Path(path_to_data_processed).mkdir(parents=True)
+
     # Load all the different data arrays
-    num_m = process_data.load_arr(path_to_data + "num_m.npy")
-    mse = process_data.load_arr(path_to_data + "mse.npy")
-    nmse = process_data.load_arr(path_to_data + "nmse.npy")
-    psnr = process_data.load_arr(path_to_data + "psnr.npy")
+    num_m = process_data.load_arr(path_to_data_raw + "num_m.npy")
+    mse = process_data.load_arr(path_to_data_raw + "mse.npy")
+    nmse = process_data.load_arr(path_to_data_raw + "nmse.npy")
+    psnr = process_data.load_arr(path_to_data_raw + "psnr.npy")
 
     # Take the mean over all the seeds for every m and every image
     mse_mean_seeds = np.mean(mse, axis=0)
@@ -258,6 +261,33 @@ if PLOT_RESULTS_BIHT_TEST_NUM_M:
 
     psnr_mean = np.mean(psnr_mean_seeds, axis=1)
     psnr_std = np.std(psnr_mean_seeds, axis=1)
+
+    # Save all the different data arrays
+    process_data.save_arr(path_to_data_processed + "num_m.npy", num_m)
+    process_data.save_arr(path_to_data_processed + "mse_mean.npy", mse_mean)
+    process_data.save_arr(path_to_data_processed + "mse_std.npy", mse_std)
+    process_data.save_arr(path_to_data_processed + "nmse_mean.npy", nmse_mean)
+    process_data.save_arr(path_to_data_processed + "nmse_std.npy", nmse_std)
+    process_data.save_arr(path_to_data_processed + "psnr_mean.npy", psnr_mean)
+    process_data.save_arr(path_to_data_processed + "psnr_std.npy", psnr_std)
+
+
+if PLOT_RESULTS_BIHT_TEST_NUM_M:
+    path_to_data_processed = f"data\\biht\\metrics_num_m\\processed\\"
+
+    if not Path(path_to_data_processed).exists():
+        raise FileNotFoundError(
+            "The data does not exist, first generate/process the data."
+        )
+
+    # Load all the different data arrays
+    num_m = process_data.load_arr(path_to_data_processed + "num_m.npy")
+    mse_mean = process_data.load_arr(path_to_data_processed + "mse_mean.npy")
+    mse_std = process_data.load_arr(path_to_data_processed + "mse_std.npy")
+    nmse_mean = process_data.load_arr(path_to_data_processed + "nmse_mean.npy")
+    nmse_std = process_data.load_arr(path_to_data_processed + "nmse_std.npy")
+    psnr_mean = process_data.load_arr(path_to_data_processed + "psnr_mean.npy")
+    psnr_std = process_data.load_arr(path_to_data_processed + "psnr_std.npy")
 
     # Create the figure
     fig4, axs4 = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
