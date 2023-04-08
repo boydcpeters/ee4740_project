@@ -17,18 +17,18 @@ GPU_FLAG = False
 dtype, device = models.get_dtype_device(GPU_FLAG)
 
 TEST_RUN_UNNP = False
-COMPARE_LOSS_DENOM_SQUARE = False
+COMPARE_LOSS_DENOM_SQUARE = True
 UNNP_TEST_NUM_M = False
 UNNP_TEST_NUM_M_LEAKYRELU = False
 
 # Process data
-PROCESS_DATA_UNNP_TEST_NUM_M = True
-PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = True
+PROCESS_DATA_UNNP_TEST_NUM_M = False
+PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = False
 
 # Plot results
 PLOT_RESULTS_UNNP_TEST_NUM_M = False
 PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU = False
-PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = True
+PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = False
 
 if TEST_RUN_UNNP:
     labels, images = process_data.load_mnist_data(
@@ -107,7 +107,7 @@ if COMPARE_LOSS_DENOM_SQUARE:
 
     x_im = images[0]
 
-    A = cs_func.create_A(1000, 784, seed=1)
+    A = cs_func.create_A(500, 784, seed=1)
     y = cs_func.calc_y(A, x_im.flatten())
 
     # Move the data over to the set device
@@ -196,12 +196,19 @@ if COMPARE_LOSS_DENOM_SQUARE:
     # Plot the images
     fig2, ax2 = visualize.plot_images(
         (x_im, out_img_np, out_img_np_square),
-        ("Original image", "Denominator loss", "Denominator loss squared"),
-        figsize=(9, 3),
+        figsize=(8, 3),
         add_cbar=True,
     )
 
-    plt.show()
+    path_savefig = "data\\figures\\"
+
+    # Create the directory if it does not exist yet
+    if not Path(path_savefig).exists():
+        Path(path_savefig).mkdir(parents=True)
+
+    if path_savefig is not None:
+        fig2.savefig(path_savefig + "compare_square_loss.pdf", dpi=200)
+        plt.close(fig2)
 
 if UNNP_TEST_NUM_M:
     labels, images = process_data.load_mnist_data(
