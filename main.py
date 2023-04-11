@@ -2,17 +2,14 @@ import string
 from pathlib import Path
 
 import process_data
-import visualize
-import cs_func
-import models
 from helpers import *
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-FULL_COMPARISON_ALL = False
-FULL_COMPARISON_ALL_ROW = True
+FULL_COMPARISON_ALL = False  # Recreate figure 5 from report, first generate the data through main_biht.py, main_unnp.py and main_convex.py
+FULL_COMPARISON_ALL_ROW = True  # Recreate figure from presentation
 
 
 if FULL_COMPARISON_ALL:
