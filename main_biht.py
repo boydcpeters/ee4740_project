@@ -12,18 +12,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-SPARSITY_DISTRIBUTION_FLAG = False
-BIHT_RUN_FLAG = False
+SPARSITY_DISTRIBUTION_FLAG = False  # Run this to plot only the sparsity distribution of the MNIST train data set
 
-BIHT_TEST_S_LEVELS = False
-PROCESS_DATA_BIHT_TEST_S_LEVELS = False
-PLOT_RESULTS_BIHT_TEST_S_LEVELS = False
+FIND_IMAGE_WITH_S_LEVEL = True  # Run this to recreate images presentation
 
-BIHT_TEST_NUM_M = False
-PROCESS_DATA_BIHT_TEST_NUM_M = False
-PLOT_RESULTS_BIHT_TEST_NUM_M = False
+BIHT_RUN_FLAG = False  # Example run with one image for BIHT
 
-PLOT_SPARSITY_DISTRIBUTION_AND_NMSE_PSNR = True
+BIHT_TEST_S_LEVELS = False  # Run this to perform a sweep over all the sparsity levels
+PROCESS_DATA_BIHT_TEST_S_LEVELS = (
+    False  # Run this to process all the sparsity level search data
+)
+PLOT_RESULTS_BIHT_TEST_S_LEVELS = False  # Run this to plot the processed data
+
+BIHT_TEST_NUM_M = False  # Run this to perform the simulations to get BIHT reconstruction performance for different number of measurements
+PROCESS_DATA_BIHT_TEST_NUM_M = False  # Run this to process the data
+PLOT_RESULTS_BIHT_TEST_NUM_M = False  # Run this to plot the data
+
+PLOT_SPARSITY_DISTRIBUTION_AND_NMSE_PSNR = (
+    False  # Run this to recreate Figure 2 of the report
+)
 
 
 if SPARSITY_DISTRIBUTION_FLAG:
@@ -50,6 +57,53 @@ if SPARSITY_DISTRIBUTION_FLAG:
     ax1.set_ylabel("Density of occurences")
 
     plt.show()
+
+
+if FIND_IMAGE_WITH_S_LEVEL:
+    labels, images = process_data.load_mnist_data(
+        "data\\raw\\mnist_train.csv", normalize=True, max_rows=None
+    )
+
+    S_LEVEL1 = 100
+    S_LEVEL2 = 225
+
+    s_images = helpers.retrieve_s_levels_images(images)
+
+    idx1 = (s_images == S_LEVEL1).nonzero()[0]
+    idx2 = (s_images == S_LEVEL2).nonzero()[0]
+
+    # bins = np.arange(np.amin(s_images), np.amax(s_images) + 1) - 0.5
+
+    x_im1 = images[idx1[1]]
+    x_im2 = images[idx2[0]]
+
+    fig1, axs1 = visualize.plot_image(x_im1)
+    fig2, axs2 = visualize.plot_image(x_im2)
+
+    # plt.show()
+
+    path_savefig = "data\\figures\\"
+
+    # Create the directory if it does not exist yet
+    if not Path(path_savefig).exists():
+        Path(path_savefig).mkdir(parents=True)
+
+    if path_savefig is not None:
+        axs1.set_axis_off()
+        axs2.set_axis_off()
+
+        fig1.savefig(
+            path_savefig + "image_mnist_train_s_level_100.PNG",
+            dpi=200,
+            bbox_inches="tight",
+        )
+        fig2.savefig(
+            path_savefig + "image_mnist_train_s_level_225.PNG",
+            dpi=200,
+            bbox_inches="tight",
+        )
+        plt.close(fig1)
+        plt.close(fig2)
 
 
 if BIHT_RUN_FLAG:
