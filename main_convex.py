@@ -11,12 +11,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+#Create the MSE, NMSE, PSNR of test dataset into different files (Saved)
 CONVEX_RUN_M = True
+
+#Plot the (MSE, NMSE, PSNR) results of the Convex function
 PLOT_RESULTS_CONVEX_TEST_NUM_M = True
 
 if CONVEX_RUN_M:
+
     labels, images = process_data.load_mnist_data(
-        "data\\raw\\mnist_test.csv", normalize=True, max_rows=None
+        "C:/Users/13970/OneDrive/桌面/Q3/EE4740 Data Compression Entropy and Sparsity Perspectives/Final project 04-10/mnist_test.csv", normalize=True, max_rows=None
     )
 
     seeds = helpers.get_seeds()
@@ -53,7 +57,7 @@ if CONVEX_RUN_M:
                 # Calculate y = np.sign(A @ x)
                 y = cs_func.calc_y(A, x)
 
-                # Reconstruct x with BIHT algorithm
+                # Reconstruct x with convex algorithm
                 x_hat = models.convex(A, y)
                 x_hat = np.reshape(x_hat, (28, 28))
 
@@ -64,7 +68,7 @@ if CONVEX_RUN_M:
                 x_hat_norm = helpers.normalize(x_hat)
                 psnr[i, j, k] = helpers.compute_psnr(x_im, x_hat_norm)
 
-    path_to_data = f"data\\convex_1500\\metrics_num_m1\\"
+    path_to_data = f"data\\convex_1500\\metrics_num_m\\"
 
     # If the path does not yet exists, create it
     if not Path(path_to_data).exists():
@@ -76,8 +80,8 @@ if CONVEX_RUN_M:
     process_data.save_arr(path_to_data + "nmse.npy", nmse)
     process_data.save_arr(path_to_data + "psnr.npy", psnr)
 
-if PLOT_RESULTS_CONVEX_TEST_NUM_M:
-    path_to_data = f"data\\convex_1500\\metrics_num_m1\\"
+if PLOT_RESULTS_CONVEX_TEST_NUM_M :
+    path_to_data = f"data\\convex_1500\\metrics_num_m\\"
 
     if not Path(path_to_data).exists():
         raise FileNotFoundError("The data does not exist, first generate the data.")
