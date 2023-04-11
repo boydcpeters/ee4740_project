@@ -11,13 +11,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+
+# NOTE: the RFPI code is not working correctly, so don't run this
+
+
 RFPI_RUN_M = True
 PLOT_RESULTS_RFPI_TEST_NUM_M = True
 
 if RFPI_RUN_M:
-
     labels, images = process_data.load_mnist_data(
-        "C:/Users/13970/OneDrive/桌面/Q3/EE4740 Data Compression Entropy and Sparsity Perspectives/Final project 04-10/mnist_test.csv", normalize=True, max_rows=None
+        "data\\raw\\mnist_test.csv",
+        normalize=True,
+        max_rows=None,
     )
 
     seeds = helpers.get_seeds()
@@ -40,7 +45,6 @@ if RFPI_RUN_M:
 
         # Loop over all the different number of measurments
         for j in range(num_m.shape[0]):
-            
             m = num_m[j]
 
             A = cs_func.create_A(m, 784, seed=seed)
@@ -79,7 +83,7 @@ if RFPI_RUN_M:
     process_data.save_arr(path_to_data + "psnr.npy", psnr)
 
 
-if PLOT_RESULTS_RFPI_TEST_NUM_M :
+if PLOT_RESULTS_RFPI_TEST_NUM_M:
     path_to_data = f"data\\rfpi\\metrics_num_m\\"
 
     if not Path(path_to_data).exists():
