@@ -11,15 +11,18 @@ import process_data
 import visualize
 import helpers
 
+# NOTE: this code requires CUDA to run
+
 # First determine whether the model should be run on the CPU or GPU,
-# CPU seems to be quicker (since the model is relatively small)
+# CPU seems to be quicker (since the model is relatively small, so transferring it to the
+# GPU does not seem worth it.)
 GPU_FLAG = False
 dtype, device = models.get_dtype_device(GPU_FLAG)
 
-TEST_RUN_UNNP = False
-COMPARE_LOSS_DENOM_SQUARE = False
-UNNP_TEST_NUM_M = False
-UNNP_TEST_NUM_M_LEAKYRELU = False
+TEST_RUN_UNNP = False  # Example run with one image for UNNP
+COMPARE_LOSS_DENOM_SQUARE = False  # Recreate figure 3 in report
+UNNP_TEST_NUM_M = False  # Run this to perform the simulations to get UNNP reconstruction performance for different number of measurements
+UNNP_TEST_NUM_M_LEAKYRELU = False  # Run this to perform the simulations to get UNNP (LeakyReLU) reconstruction performance for different number of measurements
 
 # Process data
 PROCESS_DATA_UNNP_TEST_NUM_M = False
@@ -28,8 +31,10 @@ PROCESS_DATA_UNNP_TEST_NUM_M_LEAKYRELU = False
 # Plot results
 PLOT_RESULTS_UNNP_TEST_NUM_M = False
 PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU = False
-PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU_OLNY_NMSE = True
-PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU = False
+PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU_OLNY_NMSE = False  #  Recreate figure 4 in report
+PLOT_RESULTS_COMPARE_UNNP_TEST_NUM_M_RELU_VS_LEAKYRELU = (
+    True  # Plot all the metrics for comparison UNNP ReLU vs LeakyReLU
+)
 
 if TEST_RUN_UNNP:
     labels, images = process_data.load_mnist_data(
@@ -595,7 +600,7 @@ if PLOT_RESULTS_UNNP_TEST_NUM_M_LEAKYRELU:
     plt.show()
 
 
-if PLOT_RESULTS_COMPARE_LOSS_RELU_VS_LEAKYRELU:
+if PLOT_RESULTS_COMPARE_UNNP_TEST_NUM_M_RELU_VS_LEAKYRELU:
     path_to_data_processed_relu = f"data\\unnp\\metrics_num_m\\processed\\"
     path_to_data_processed_leakyrelu = (
         f"data\\unnp\\metrics_num_m_leakyrelu\\processed\\"
