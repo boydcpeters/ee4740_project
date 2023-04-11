@@ -15,9 +15,8 @@ CONVEX_RUN_M = True
 PLOT_RESULTS_CONVEX_TEST_NUM_M = True
 
 if CONVEX_RUN_M:
-
     labels, images = process_data.load_mnist_data(
-        "C:/Users/13970/OneDrive/桌面/Q3/EE4740 Data Compression Entropy and Sparsity Perspectives/Final project 04-10/mnist_test.csv", normalize=True, max_rows=None
+        "data\\raw\\mnist_test.csv", normalize=True, max_rows=None
     )
 
     seeds = helpers.get_seeds()
@@ -77,7 +76,7 @@ if CONVEX_RUN_M:
     process_data.save_arr(path_to_data + "nmse.npy", nmse)
     process_data.save_arr(path_to_data + "psnr.npy", psnr)
 
-if PLOT_RESULTS_CONVEX_TEST_NUM_M :
+if PLOT_RESULTS_CONVEX_TEST_NUM_M:
     path_to_data = f"data\\convex_1500\\metrics_num_m1\\"
 
     if not Path(path_to_data).exists():
